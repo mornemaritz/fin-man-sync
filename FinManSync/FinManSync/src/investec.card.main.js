@@ -15,7 +15,7 @@ const afterTransaction = async (transaction) => {
     {
         originalCurrencyAmount = `(${transaction.centsAmount / 100}${transaction.currencyCode.toUpperCase()})`;
 
-        const conversionUrl = `https://api.fxratesapi.com/convert?api_keyi&from=${transaction.currencyCode.toUpperCase()}&to=ZAR&amount=${transaction.centsAmount / 100}`;
+        const conversionUrl = `https://api.fxratesapi.com/convert?api_key=${process.env.FX_RATES_API_KEY}&from=${transaction.currencyCode.toUpperCase()}&to=ZAR&amount=${transaction.centsAmount / 100}`;
         try {
             const response = await fetch(conversionUrl);
             if (!response.ok) {
@@ -37,7 +37,7 @@ const afterTransaction = async (transaction) => {
             method: 'POST',
              headers: {
                 'accept': 'application/json',
-                'Authorization': 'Bearer {TO_BE_SPECIFIED}',
+                'Authorization': `Bearer ${process.env.YNAB_BEARER_TOKEN}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({

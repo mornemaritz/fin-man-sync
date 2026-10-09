@@ -8,8 +8,8 @@ var builder = new ConfigurationBuilder()
 
 var configuration = builder.Build();
 
-await new Operator(configuration).OperateAsync(args);
-Console.WriteLine("Sync job completed successfully.");
+var result = await new Operator(configuration).OperateAsync(args);
+Console.WriteLine(result);
 
 partial class Program
 {

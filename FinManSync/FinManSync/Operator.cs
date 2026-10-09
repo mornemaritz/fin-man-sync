@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -20,27 +21,40 @@ public class Operator
   private readonly string _ynabBudgetId;
   private readonly string _ynabAccountId;
 
+  private static string GetRequiredConfigValue(IConfiguration configuration, string key)
+  {
+    var rawValue = configuration[key] ?? throw new Exception($"{key} environment variable is not set.");
+    var normalizedValue = rawValue.Trim().Trim('"');
+
+    if (string.IsNullOrWhiteSpace(normalizedValue))
+    {
+      throw new Exception($"{key} environment variable is empty.");
+    }
+
+    return normalizedValue;
+  }
+
   public Operator(IConfiguration configuration)
   {
     Console.WriteLine("Initializing Operator with configuration...");
-    Console.WriteLine($"INVESTEC_CLIENT_ID: {configuration["INVESTEC_CLIENT_ID"] ?? "Not Set"}");
-    _investecClientId = configuration["INVESTEC_CLIENT_ID"] ?? throw new Exception("INVESTEC_CLIENT_ID environment variable is not set.");
+    Console.WriteLine($"INVESTEC_CLIENT_ID: {(string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_ID"]) ? "Not Set" : "Set")}");
+    _investecClientId = GetRequiredConfigValue(configuration, "INVESTEC_CLIENT_ID");
     Console.WriteLine($"INVESTEC_CLIENT_SECRET: {(string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_SECRET"]) ? "Not Set" : "Set")}");
-    _investecClientSecret = configuration["INVESTEC_CLIENT_SECRET"] ?? throw new Exception("INVESTEC_CLIENT_SECRET environment variable is not set.");
+    _investecClientSecret = GetRequiredConfigValue(configuration, "INVESTEC_CLIENT_SECRET");
     Console.WriteLine($"INVESTEC_API_KEY: {(string.IsNullOrEmpty(configuration["INVESTEC_API_KEY"]) ? "Not Set" : "Set")}");
-    _investecApiKey = configuration["INVESTEC_API_KEY"] ?? throw new Exception("INVESTEC_API_KEY environment variable is not set.");
+    _investecApiKey = GetRequiredConfigValue(configuration, "INVESTEC_API_KEY");
     Console.WriteLine($"INVESTEC_ACCOUNT_ID: {(string.IsNullOrEmpty(configuration["INVESTEC_ACCOUNT_ID"]) ? "Not Set" : "Set")}");
-    _investecAccountId = configuration["INVESTEC_ACCOUNT_ID"] ?? throw new Exception("INVESTEC_ACCOUNT_ID environment variable is not set.");
+    _investecAccountId = GetRequiredConfigValue(configuration, "INVESTEC_ACCOUNT_ID");
 
     Console.WriteLine($"YNAB_BEARER_TOKEN: {(string.IsNullOrEmpty(configuration["YNAB_BEARER_TOKEN"]) ? "Not Set" : "Set")}");
-    _ynabBearerToken = configuration["YNAB_BEARER_TOKEN"] ?? throw new Exception("YNAB_BEARER_TOKEN environment variable is not set.");
+    _ynabBearerToken = GetRequiredConfigValue(configuration, "YNAB_BEARER_TOKEN");
     Console.WriteLine($"YNAB_BUDGET_ID: {(string.IsNullOrEmpty(configuration["YNAB_BUDGET_ID"]) ? "Not Set" : "Set")}");
-    _ynabBudgetId = configuration["YNAB_BUDGET_ID"] ?? throw new Exception("YNAB_BUDGET_ID environment variable is not set.");
+    _ynabBudgetId = GetRequiredConfigValue(configuration, "YNAB_BUDGET_ID");
     Console.WriteLine($"YNAB_ACCOUNT_ID: {(string.IsNullOrEmpty(configuration["YNAB_ACCOUNT_ID"]) ? "Not Set" : "Set")}");
-    _ynabAccountId = configuration["YNAB_ACCOUNT_ID"] ?? throw new Exception("YNAB_ACCOUNT_ID environment variable is not set.");
+    _ynabAccountId = GetRequiredConfigValue(configuration, "YNAB_ACCOUNT_ID");
 
     investecTransactionGetUrl = $"https://openapi.investec.com/za/pb/v1/accounts/{_investecAccountId}/transactions";
-    ynabTransactionPostUrl = $"https://api.ynab.com/v1/budgets/{_ynabBudgetId}/transactions";
+    ynabTransactionPostUrl = $"https://api.ynab.com/v1/plans/{_ynabBudgetId}/transactions";
   }
 
   public string GetInvestecAuthToken()
@@ -94,10 +108,11 @@ public class Operator
       ? parsedDate.ToString("yyyy-MM-dd")
       : DateTime.Now.ToString("yyyy-MM-dd");
 
-    if (File.Exists(lastSyncDateFilePath) && File.ReadAllText(lastSyncDateFilePath) is string lastSyncDateFromFile && !string.IsNullOrEmpty(lastSyncDateFromFile))
+    if (File.Exists(lastSyncDateFilePath) && File.ReadAllText(lastSyncDateFilePath) is string lastSyncDateFromFile && !string.IsNullOrWhiteSpace(lastSyncDateFromFile))
     {
-      lastSyncDate = lastSyncDateFromFile;
-      Console.WriteLine($"Using last sync date from file: {lastSyncDateFromFile}");
+      Console.WriteLine($"Using last sync date from file: {lastSyncDateFilePath}"); 
+      lastSyncDate = lastSyncDateFromFile.Trim();
+      Console.WriteLine($"Using last sync date from file: {lastSyncDate}");
     }
     else
     {
@@ -107,24 +122,37 @@ public class Operator
     Console.WriteLine($"Using toSyncDate: {toSyncDate}");
 
     using var httpClient = new HttpClient();
-    httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {GetInvestecAuthToken()}");
-    httpClient.DefaultRequestHeaders.Add("x-api-key", _investecApiKey );
 
-    string fromDate = lastSyncDate;
-    string toDate = toSyncDate;
+    string fromDate = lastSyncDate.Trim();
+    string toDate = toSyncDate.Trim();
 
-    // var investectTransactionResponse = await httpClient.GetFromJsonAsync<TransactionResponse>($"{investecTransactionGetUrl}?fromDate={fromDate}&toDate={toDate}");
-    var investectTransactionResponse = await httpClient.GetAsync($"{investecTransactionGetUrl}?fromDate={fromDate}&toDate={toDate}");
+    var investecRequestUri = $"{investecTransactionGetUrl}?fromDate={Uri.EscapeDataString(fromDate)}&toDate={Uri.EscapeDataString(toDate)}";
+    using var investecRequest = new HttpRequestMessage(HttpMethod.Get, investecRequestUri);
+    investecRequest.Version = new Version(1, 1);
+    investecRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GetInvestecAuthToken());
+    investecRequest.Headers.Add("x-api-key", _investecApiKey);
+    investecRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    investecRequest.Headers.UserAgent.ParseAdd("FinManSync/1.0");
 
-    Console.WriteLine($"Investec transaction response status code: {investectTransactionResponse?.StatusCode}");
-    Console.WriteLine($"Investec transaction response message: {investectTransactionResponse?.ReasonPhrase}");
-    var body = investectTransactionResponse?.Content.ReadAsStringAsync().Result;
+    var investectTransactionResponse = await httpClient.SendAsync(investecRequest);
+    ArgumentNullException.ThrowIfNull(investectTransactionResponse);
+
+    Console.WriteLine($"Investec transaction response status code: {investectTransactionResponse.StatusCode}");
+    Console.WriteLine($"Investec transaction response message: {investectTransactionResponse.ReasonPhrase}");
+    var body = investectTransactionResponse.Content is null
+      ? string.Empty
+      : await investectTransactionResponse.Content.ReadAsStringAsync();
     Console.WriteLine($"Investec transaction response body: {body}");
+
+    if (!investectTransactionResponse.IsSuccessStatusCode)
+    {
+      return $"Investec transaction API returned an error. Status code: {(int)investectTransactionResponse.StatusCode}, Reason: {investectTransactionResponse.ReasonPhrase}, Body: {body}";
+    }
 
     var ynabPostTransactions = JsonSerializer.Deserialize<TransactionResponse>(body)?.Data.Transactions.Select(t => new YnabPostTransaction
     {
       AccountId = _ynabAccountId,
-      Date = t.PostingDate,
+      Date = t.TransactionDate,
       Amount = (int)(t.SignedAmount * 1000), // Convert to milliunits
       PayeeName = t.Description,
       ImportId = t.UUID // Using uuid as ImportId
@@ -142,11 +170,17 @@ public class Operator
       httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_ynabBearerToken}");
 
       var postResponse = await httpClient.PostAsJsonAsync(ynabTransactionPostUrl, ynabTransactionRoot);
-      postResponse.EnsureSuccessStatusCode();
+      if (!postResponse.IsSuccessStatusCode)
+      {
+        var postResponseBody = postResponse.Content is null
+          ? string.Empty
+          : await postResponse.Content.ReadAsStringAsync();
+        return $"YNAB transaction API returned an error. Status code: {(int)postResponse.StatusCode}, Reason: {postResponse.ReasonPhrase}, Body: {postResponseBody}";
+      }
 
       File.WriteAllText(lastSyncDateFilePath, toSyncDate);
     }
 
-    return "Done";
+    return "Sync job completed successfully.";
   }
 }
