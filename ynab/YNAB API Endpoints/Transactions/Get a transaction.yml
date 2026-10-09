@@ -10,11 +10,11 @@ http:
   url: "{{baseUrl}}/plans/:plan_id/transactions/:transaction_id"
   params:
     - name: plan_id
-      value: ""
+      value: "{{YNAB_BUDGET_ID}}"
       type: path
       description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
     - name: transaction_id
-      value: ""
+      value: 7caaa57d-5fd7-45a9-a10c-39d53881c85e
       type: path
       description: The id of the transaction
   auth: inherit

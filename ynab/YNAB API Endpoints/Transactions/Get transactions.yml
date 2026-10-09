@@ -7,22 +7,16 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/plans/:plan_id/transactions"
+  url: "{{baseUrl}}/plans/:plan_id/transactions?since_date=2026-08-25&until_date=2026-08-28"
   params:
-    - name: plan_id
-      value: ""
-      type: path
-      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
     - name: since_date
-      value: ""
+      value: 2026-08-25
       type: query
       description: If specified, only transactions on or after this date will be included.  The date should be ISO formatted (e.g. 2016-12-30). Defaults to one year ago when not specified.
-      disabled: true
     - name: until_date
-      value: ""
+      value: 2026-08-28
       type: query
       description: If specified, only transactions on or before this date will be included.  The date should be ISO formatted (e.g. 2016-12-30).
-      disabled: true
     - name: type
       value: uncategorized
       type: query
@@ -34,10 +28,14 @@ http:
       description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
       disabled: true
     - name: last_knowledge_of_server
-      value: ""
+      value: "29237"
       type: query
       description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
       disabled: true
+    - name: plan_id
+      value: "{{YNAB_BUDGET_ID}}"
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
   auth: inherit
 
 settings:

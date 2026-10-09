@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using FinManSync.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace FinManSync;
 
@@ -20,6 +21,7 @@ public class Operator
   private readonly string _ynabBearerToken;
   private readonly string _ynabBudgetId;
   private readonly string _ynabAccountId;
+  private readonly ILogger<Operator> _logger;
 
   private static string GetRequiredConfigValue(IConfiguration configuration, string key)
   {
@@ -34,23 +36,25 @@ public class Operator
     return normalizedValue;
   }
 
-  public Operator(IConfiguration configuration)
+  public Operator(IConfiguration configuration, ILogger<Operator> logger)
   {
-    Console.WriteLine("Initializing Operator with configuration...");
-    Console.WriteLine($"INVESTEC_CLIENT_ID: {(string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_ID"]) ? "Not Set" : "Set")}");
+    _logger = logger;
+
+    _logger.LogInformation("Initializing Operator with configuration...");
+    _logger.LogDebug("INVESTEC_CLIENT_ID: {Status}", string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_ID"]) ? "Not Set" : "Set");
     _investecClientId = GetRequiredConfigValue(configuration, "INVESTEC_CLIENT_ID");
-    Console.WriteLine($"INVESTEC_CLIENT_SECRET: {(string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_SECRET"]) ? "Not Set" : "Set")}");
+    _logger.LogDebug("INVESTEC_CLIENT_SECRET: {Status}", string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_SECRET"]) ? "Not Set" : "Set");
     _investecClientSecret = GetRequiredConfigValue(configuration, "INVESTEC_CLIENT_SECRET");
-    Console.WriteLine($"INVESTEC_API_KEY: {(string.IsNullOrEmpty(configuration["INVESTEC_API_KEY"]) ? "Not Set" : "Set")}");
+    _logger.LogDebug("INVESTEC_API_KEY: {Status}", string.IsNullOrEmpty(configuration["INVESTEC_API_KEY"]) ? "Not Set" : "Set");
     _investecApiKey = GetRequiredConfigValue(configuration, "INVESTEC_API_KEY");
-    Console.WriteLine($"INVESTEC_ACCOUNT_ID: {(string.IsNullOrEmpty(configuration["INVESTEC_ACCOUNT_ID"]) ? "Not Set" : "Set")}");
+    _logger.LogDebug("INVESTEC_ACCOUNT_ID: {Status}", string.IsNullOrEmpty(configuration["INVESTEC_ACCOUNT_ID"]) ? "Not Set" : "Set");
     _investecAccountId = GetRequiredConfigValue(configuration, "INVESTEC_ACCOUNT_ID");
 
-    Console.WriteLine($"YNAB_BEARER_TOKEN: {(string.IsNullOrEmpty(configuration["YNAB_BEARER_TOKEN"]) ? "Not Set" : "Set")}");
+    _logger.LogDebug("YNAB_BEARER_TOKEN: {Status}", string.IsNullOrEmpty(configuration["YNAB_BEARER_TOKEN"]) ? "Not Set" : "Set");
     _ynabBearerToken = GetRequiredConfigValue(configuration, "YNAB_BEARER_TOKEN");
-    Console.WriteLine($"YNAB_BUDGET_ID: {(string.IsNullOrEmpty(configuration["YNAB_BUDGET_ID"]) ? "Not Set" : "Set")}");
+    _logger.LogDebug("YNAB_BUDGET_ID: {Status}", string.IsNullOrEmpty(configuration["YNAB_BUDGET_ID"]) ? "Not Set" : "Set");
     _ynabBudgetId = GetRequiredConfigValue(configuration, "YNAB_BUDGET_ID");
-    Console.WriteLine($"YNAB_ACCOUNT_ID: {(string.IsNullOrEmpty(configuration["YNAB_ACCOUNT_ID"]) ? "Not Set" : "Set")}");
+    _logger.LogDebug("YNAB_ACCOUNT_ID: {Status}", string.IsNullOrEmpty(configuration["YNAB_ACCOUNT_ID"]) ? "Not Set" : "Set");
     _ynabAccountId = GetRequiredConfigValue(configuration, "YNAB_ACCOUNT_ID");
 
     investecTransactionGetUrl = $"https://openapi.investec.com/za/pb/v1/accounts/{_investecAccountId}/transactions";
@@ -59,8 +63,6 @@ public class Operator
 
   public string GetInvestecAuthToken()
   {
-    Console.WriteLine("Base64 Encoded Client ID and Secret: " + Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_investecClientId}:{_investecClientSecret}")));
-
     var request = new HttpRequestMessage
     {
       Method = HttpMethod.Post,
@@ -79,10 +81,11 @@ public class Operator
     using var client = new HttpClient();
     using var response = client.Send(request);
 
-    Console.WriteLine($"Investec token response status code: {response.StatusCode}");
-    Console.WriteLine($"Investec token response message: {response.ReasonPhrase}");
+    _logger.LogInformation("Investec token response status code: {StatusCode}", response.StatusCode);
+    _logger.LogInformation("Investec token response message: {ReasonPhrase}", response.ReasonPhrase);
     var body = response.Content.ReadAsStringAsync().Result;
-    Console.WriteLine($"Investec token response body: {body}");
+    // Body contains the access token; keep at Debug so it isn't captured by default sinks/log levels.
+    _logger.LogDebug("Investec token response body: {Body}", body);
 
     response.EnsureSuccessStatusCode();
     var tokenResponse = JsonSerializer.Deserialize<InvestecTokenResponse>(body);
@@ -110,16 +113,16 @@ public class Operator
 
     if (File.Exists(lastSyncDateFilePath) && File.ReadAllText(lastSyncDateFilePath) is string lastSyncDateFromFile && !string.IsNullOrWhiteSpace(lastSyncDateFromFile))
     {
-      Console.WriteLine($"Using last sync date from file: {lastSyncDateFilePath}"); 
+      _logger.LogInformation("Using last sync date from file: {LastSyncDateFilePath}", lastSyncDateFilePath);
       lastSyncDate = lastSyncDateFromFile.Trim();
-      Console.WriteLine($"Using last sync date from file: {lastSyncDate}");
+      _logger.LogInformation("Using last sync date from file: {LastSyncDate}", lastSyncDate);
     }
     else
     {
-      Console.WriteLine($"{lastSyncDateFilePath} not found or is empty. Using yesterday's date.");
+      _logger.LogInformation("{LastSyncDateFilePath} not found or is empty. Using yesterday's date.", lastSyncDateFilePath);
     }
 
-    Console.WriteLine($"Using toSyncDate: {toSyncDate}");
+    _logger.LogInformation("Using toSyncDate: {ToSyncDate}", toSyncDate);
 
     using var httpClient = new HttpClient();
 
@@ -137,15 +140,17 @@ public class Operator
     var investectTransactionResponse = await httpClient.SendAsync(investecRequest);
     ArgumentNullException.ThrowIfNull(investectTransactionResponse);
 
-    Console.WriteLine($"Investec transaction response status code: {investectTransactionResponse.StatusCode}");
-    Console.WriteLine($"Investec transaction response message: {investectTransactionResponse.ReasonPhrase}");
+    _logger.LogInformation("Investec transaction response status code: {StatusCode}", investectTransactionResponse.StatusCode);
+    _logger.LogInformation("Investec transaction response message: {ReasonPhrase}", investectTransactionResponse.ReasonPhrase);
     var body = investectTransactionResponse.Content is null
       ? string.Empty
       : await investectTransactionResponse.Content.ReadAsStringAsync();
-    Console.WriteLine($"Investec transaction response body: {body}");
+    // Body contains financial transaction data; keep at Debug to avoid leaking it into default log sinks.
+    _logger.LogDebug("Investec transaction response body: {Body}", body);
 
     if (!investectTransactionResponse.IsSuccessStatusCode)
     {
+      _logger.LogError("Investec transaction API returned an error. Status code: {StatusCode}, Reason: {ReasonPhrase}", (int)investectTransactionResponse.StatusCode, investectTransactionResponse.ReasonPhrase);
       return $"Investec transaction API returned an error. Status code: {(int)investectTransactionResponse.StatusCode}, Reason: {investectTransactionResponse.ReasonPhrase}, Body: {body}";
     }
 
@@ -175,6 +180,7 @@ public class Operator
         var postResponseBody = postResponse.Content is null
           ? string.Empty
           : await postResponse.Content.ReadAsStringAsync();
+        _logger.LogError("YNAB transaction API returned an error. Status code: {StatusCode}, Reason: {ReasonPhrase}", (int)postResponse.StatusCode, postResponse.ReasonPhrase);
         return $"YNAB transaction API returned an error. Status code: {(int)postResponse.StatusCode}, Reason: {postResponse.ReasonPhrase}, Body: {postResponseBody}";
       }
 

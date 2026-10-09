@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using FinManSync;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 var builder = new ConfigurationBuilder()
     .AddUserSecrets<Program>() // Loads user-secrets for this assembly
@@ -8,8 +9,18 @@ var builder = new ConfigurationBuilder()
 
 var configuration = builder.Build();
 
-var result = await new Operator(configuration).OperateAsync(args);
-Console.WriteLine(result);
+using var loggerFactory = LoggerFactory.Create(logging =>
+{
+    // Add/replace providers here to log to other destinations (file, Application Insights, etc.)
+    // without changing any code in Operator.
+    logging.AddConsole();
+    logging.SetMinimumLevel(LogLevel.Information);
+});
+
+var logger = loggerFactory.CreateLogger<Operator>();
+
+var result = await new Operator(configuration, logger).OperateAsync(args);
+logger.LogInformation("{Result}", result);
 
 partial class Program
 {
