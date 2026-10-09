@@ -22,13 +22,21 @@ public class Operator
 
   public Operator(IConfiguration configuration)
   {
+    Console.WriteLine("Initializing Operator with configuration...");
+    Console.WriteLine($"INVESTEC_CLIENT_ID: {configuration["INVESTEC_CLIENT_ID"] ?? "Not Set"}");
     _investecClientId = configuration["INVESTEC_CLIENT_ID"] ?? throw new Exception("INVESTEC_CLIENT_ID environment variable is not set.");
+    Console.WriteLine($"INVESTEC_CLIENT_SECRET: {(string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_SECRET"]) ? "Not Set" : "Set")}");
     _investecClientSecret = configuration["INVESTEC_CLIENT_SECRET"] ?? throw new Exception("INVESTEC_CLIENT_SECRET environment variable is not set.");
+    Console.WriteLine($"INVESTEC_API_KEY: {(string.IsNullOrEmpty(configuration["INVESTEC_API_KEY"]) ? "Not Set" : "Set")}");
     _investecApiKey = configuration["INVESTEC_API_KEY"] ?? throw new Exception("INVESTEC_API_KEY environment variable is not set.");
+    Console.WriteLine($"INVESTEC_ACCOUNT_ID: {(string.IsNullOrEmpty(configuration["INVESTEC_ACCOUNT_ID"]) ? "Not Set" : "Set")}");
     _investecAccountId = configuration["INVESTEC_ACCOUNT_ID"] ?? throw new Exception("INVESTEC_ACCOUNT_ID environment variable is not set.");
 
+    Console.WriteLine($"YNAB_BEARER_TOKEN: {(string.IsNullOrEmpty(configuration["YNAB_BEARER_TOKEN"]) ? "Not Set" : "Set")}");
     _ynabBearerToken = configuration["YNAB_BEARER_TOKEN"] ?? throw new Exception("YNAB_BEARER_TOKEN environment variable is not set.");
+    Console.WriteLine($"YNAB_BUDGET_ID: {(string.IsNullOrEmpty(configuration["YNAB_BUDGET_ID"]) ? "Not Set" : "Set")}");
     _ynabBudgetId = configuration["YNAB_BUDGET_ID"] ?? throw new Exception("YNAB_BUDGET_ID environment variable is not set.");
+    Console.WriteLine($"YNAB_ACCOUNT_ID: {(string.IsNullOrEmpty(configuration["YNAB_ACCOUNT_ID"]) ? "Not Set" : "Set")}");
     _ynabAccountId = configuration["YNAB_ACCOUNT_ID"] ?? throw new Exception("YNAB_ACCOUNT_ID environment variable is not set.");
 
     investecTransactionGetUrl = $"https://openapi.investec.com/za/pb/v1/accounts/{_investecAccountId}/transactions";
@@ -37,6 +45,8 @@ public class Operator
 
   public string GetInvestecAuthToken()
   {
+    Console.WriteLine("Base64 Encoded Client ID and Secret: " + Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_investecClientId}:{_investecClientSecret}")));
+
     var request = new HttpRequestMessage
     {
       Method = HttpMethod.Post,
@@ -55,8 +65,12 @@ public class Operator
     using var client = new HttpClient();
     using var response = client.Send(request);
 
-    response.EnsureSuccessStatusCode();
+    Console.WriteLine($"Investec token response status code: {response.StatusCode}");
+    Console.WriteLine($"Investec token response message: {response.ReasonPhrase}");
     var body = response.Content.ReadAsStringAsync().Result;
+    Console.WriteLine($"Investec token response body: {body}");
+
+    response.EnsureSuccessStatusCode();
     var tokenResponse = JsonSerializer.Deserialize<InvestecTokenResponse>(body);
 
     if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.AccessToken))
@@ -99,9 +113,15 @@ public class Operator
     string fromDate = lastSyncDate;
     string toDate = toSyncDate;
 
-    var investectTransactionResponse = await httpClient.GetFromJsonAsync<TransactionResponse>($"{investecTransactionGetUrl}?fromDate={fromDate}&toDate={toDate}");
+    // var investectTransactionResponse = await httpClient.GetFromJsonAsync<TransactionResponse>($"{investecTransactionGetUrl}?fromDate={fromDate}&toDate={toDate}");
+    var investectTransactionResponse = await httpClient.GetAsync($"{investecTransactionGetUrl}?fromDate={fromDate}&toDate={toDate}");
 
-    var ynabPostTransactions = investectTransactionResponse?.Data.Transactions.Select(t => new YnabPostTransaction
+    Console.WriteLine($"Investec transaction response status code: {investectTransactionResponse?.StatusCode}");
+    Console.WriteLine($"Investec transaction response message: {investectTransactionResponse?.ReasonPhrase}");
+    var body = investectTransactionResponse?.Content.ReadAsStringAsync().Result;
+    Console.WriteLine($"Investec transaction response body: {body}");
+
+    var ynabPostTransactions = JsonSerializer.Deserialize<TransactionResponse>(body)?.Data.Transactions.Select(t => new YnabPostTransaction
     {
       AccountId = _ynabAccountId,
       Date = t.PostingDate,

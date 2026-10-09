@@ -1,0 +1,134 @@
+info:
+  name: Create a single transaction or multiple transactions
+  type: http
+  seq: 2
+  tags:
+    - Transactions
+
+http:
+  method: POST
+  url: "{{baseUrl}}/plans/:plan_id/transactions"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+  body:
+    type: json
+    data: |-
+      {
+        "transaction": "",
+        "transactions": []
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The transaction or transactions were successfully created
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+      body:
+        type: json
+        data: |-
+          {
+            "transaction": "",
+            "transactions": []
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "transaction_ids": [],
+              "transaction": "",
+              "transactions": [],
+              "duplicate_import_ids": [],
+              "server_knowledge": 0
+            }
+          }
+  - name: 400 Response
+    description: The request could not be understood due to malformed syntax or validation error(s).
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+      body:
+        type: json
+        data: |-
+          {
+            "transaction": "",
+            "transactions": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+  - name: 409 Response
+    description: A transaction on the same account with the same `import_id` already exists.
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+      body:
+        type: json
+        data: |-
+          {
+            "transaction": "",
+            "transactions": []
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Creates a single transaction or multiple transactions.  If you provide a body containing a `transaction` object, a single transaction will be created and if you provide a body containing a `transactions` array, multiple transactions will be created.  Scheduled transactions (transactions with a future date) cannot be created on this endpoint.

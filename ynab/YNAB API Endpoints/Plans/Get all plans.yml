@@ -1,0 +1,102 @@
+info:
+  name: Get all plans
+  type: http
+  seq: 1
+  tags:
+    - Plans
+
+http:
+  method: GET
+  url: "{{baseUrl}}/plans"
+  params:
+    - name: include_accounts
+      value: ""
+      type: query
+      description: Whether to include the list of plan accounts
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The list of plans
+    request:
+      url: "{{baseUrl}}/plans"
+      method: GET
+      params:
+        - name: include_accounts
+          value: ""
+          type: query
+          description: Whether to include the list of plan accounts
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "plans": [
+                {
+                  "id": "",
+                  "name": "",
+                  "last_modified_on": "",
+                  "first_month": "",
+                  "last_month": "",
+                  "date_format": {
+                    "format": ""
+                  },
+                  "currency_format": {
+                    "iso_code": "",
+                    "example_format": "",
+                    "decimal_digits": 0,
+                    "decimal_separator": "",
+                    "symbol_first": false,
+                    "group_separator": "",
+                    "currency_symbol": "",
+                    "display_symbol": false
+                  },
+                  "accounts": []
+                }
+              ],
+              "default_plan": ""
+            }
+          }
+  - name: 404 Response
+    description: No plans were found
+    request:
+      url: "{{baseUrl}}/plans"
+      method: GET
+      params:
+        - name: include_accounts
+          value: ""
+          type: query
+          description: Whether to include the list of plan accounts
+          disabled: true
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Returns plans list with summary information

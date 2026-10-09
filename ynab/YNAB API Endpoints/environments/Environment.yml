@@ -1,0 +1,13 @@
+name: Environment
+variables:
+  - name: baseUrl
+    value: https://api.ynab.com/v1
+    description: ""
+  - name: YNAB_BUDGET_ID
+    value: "{{process.env.YNAB_BUDGET_ID}}"
+    description: ""
+  - name: YNAB_ACCOUNT_ID
+    value: "{{process.env.YNAB_ACCOUNT_ID}}"
+    description: ""
+  - secret: true
+    name: YNAB_BEARER_TOKEN

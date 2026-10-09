@@ -1,0 +1,124 @@
+info:
+  name: Create a scheduled transaction
+  type: http
+  seq: 2
+  tags:
+    - Scheduled Transactions
+
+http:
+  method: POST
+  url: "{{baseUrl}}/plans/:plan_id/scheduled_transactions"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+  body:
+    type: json
+    data: |-
+      {
+        "scheduled_transaction": {
+          "account_id": "",
+          "date": "",
+          "amount": 0,
+          "payee_id": "",
+          "payee_name": "",
+          "category_id": "",
+          "memo": "",
+          "flag_color": "red",
+          "frequency": "never"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The scheduled transaction was successfully created
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/scheduled_transactions"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+      body:
+        type: json
+        data: |-
+          {
+            "scheduled_transaction": {
+              "account_id": "",
+              "date": "",
+              "amount": 0,
+              "payee_id": "",
+              "payee_name": "",
+              "category_id": "",
+              "memo": "",
+              "flag_color": "red",
+              "frequency": "never"
+            }
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "scheduled_transaction": ""
+            }
+          }
+  - name: 400 Response
+    description: The request could not be understood due to malformed syntax or validation error(s).
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/scheduled_transactions"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+      body:
+        type: json
+        data: |-
+          {
+            "scheduled_transaction": {
+              "account_id": "",
+              "date": "",
+              "amount": 0,
+              "payee_id": "",
+              "payee_name": "",
+              "category_id": "",
+              "memo": "",
+              "flag_color": "red",
+              "frequency": "never"
+            }
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Creates a single scheduled transaction (a transaction with a future date).

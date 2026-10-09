@@ -1,0 +1,90 @@
+info:
+  name: Get plan settings
+  type: http
+  seq: 3
+  tags:
+    - Plans
+
+http:
+  method: GET
+  url: "{{baseUrl}}/plans/:plan_id/settings"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The requested plan settings
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/settings"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "settings": {
+                "date_format": {
+                  "format": ""
+                },
+                "currency_format": {
+                  "iso_code": "",
+                  "example_format": "",
+                  "decimal_digits": 0,
+                  "decimal_separator": "",
+                  "symbol_first": false,
+                  "group_separator": "",
+                  "currency_symbol": "",
+                  "display_symbol": false
+                }
+              }
+            }
+          }
+  - name: 404 Response
+    description: The specified plan was not found
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/settings"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Returns settings for a plan

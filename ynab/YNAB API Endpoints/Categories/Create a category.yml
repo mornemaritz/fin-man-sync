@@ -1,0 +1,95 @@
+info:
+  name: Create a category
+  type: http
+  seq: 2
+  tags:
+    - Categories
+
+http:
+  method: POST
+  url: "{{baseUrl}}/plans/:plan_id/categories"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan ("last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan)'
+  body:
+    type: json
+    data: |-
+      {
+        "category": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The category was successfully created
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/categories"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan ("last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan)'
+      body:
+        type: json
+        data: |-
+          {
+            "category": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "category": "",
+              "server_knowledge": 0
+            }
+          }
+  - name: 400 Response
+    description: The request could not be understood due to malformed syntax or validation error(s).
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/categories"
+      method: POST
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan ("last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan)'
+      body:
+        type: json
+        data: |-
+          {
+            "category": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Creates a new category

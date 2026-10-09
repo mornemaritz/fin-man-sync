@@ -1,0 +1,88 @@
+info:
+  name: Get a scheduled transaction
+  type: http
+  seq: 3
+  tags:
+    - Scheduled Transactions
+
+http:
+  method: GET
+  url: "{{baseUrl}}/plans/:plan_id/scheduled_transactions/:scheduled_transaction_id"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    - name: scheduled_transaction_id
+      value: ""
+      type: path
+      description: The id of the scheduled transaction
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The requested Scheduled Transaction
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/scheduled_transactions/:scheduled_transaction_id"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: scheduled_transaction_id
+          value: ""
+          type: path
+          description: The id of the scheduled transaction
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "scheduled_transaction": ""
+            }
+          }
+  - name: 404 Response
+    description: The scheduled transaction was not found
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/scheduled_transactions/:scheduled_transaction_id"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: scheduled_transaction_id
+          value: ""
+          type: path
+          description: The id of the scheduled transaction
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Returns a single scheduled transaction

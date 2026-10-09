@@ -1,0 +1,92 @@
+info:
+  name: Get all plan months
+  type: http
+  seq: 1
+  tags:
+    - Months
+
+http:
+  method: GET
+  url: "{{baseUrl}}/plans/:plan_id/months"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    - name: last_knowledge_of_server
+      value: ""
+      type: query
+      description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The list of plan months
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/months"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: last_knowledge_of_server
+          value: ""
+          type: query
+          description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "months": [],
+              "server_knowledge": 0
+            }
+          }
+  - name: 404 Response
+    description: No plan months were found
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/months"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: last_knowledge_of_server
+          value: ""
+          type: query
+          description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+          disabled: true
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Returns all plan months

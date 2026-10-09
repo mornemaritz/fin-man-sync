@@ -1,0 +1,203 @@
+info:
+  name: Get transactions
+  type: http
+  seq: 1
+  tags:
+    - Transactions
+
+http:
+  method: GET
+  url: "{{baseUrl}}/plans/:plan_id/transactions"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    - name: since_date
+      value: ""
+      type: query
+      description: If specified, only transactions on or after this date will be included.  The date should be ISO formatted (e.g. 2016-12-30). Defaults to one year ago when not specified.
+      disabled: true
+    - name: until_date
+      value: ""
+      type: query
+      description: If specified, only transactions on or before this date will be included.  The date should be ISO formatted (e.g. 2016-12-30).
+      disabled: true
+    - name: type
+      value: uncategorized
+      type: query
+      description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+      disabled: true
+    - name: type
+      value: unapproved
+      type: query
+      description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+      disabled: true
+    - name: last_knowledge_of_server
+      value: ""
+      type: query
+      description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The list of requested transactions
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: since_date
+          value: ""
+          type: query
+          description: If specified, only transactions on or after this date will be included.  The date should be ISO formatted (e.g. 2016-12-30). Defaults to one year ago when not specified.
+          disabled: true
+        - name: until_date
+          value: ""
+          type: query
+          description: If specified, only transactions on or before this date will be included.  The date should be ISO formatted (e.g. 2016-12-30).
+          disabled: true
+        - name: type
+          value: uncategorized
+          type: query
+          description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+          disabled: true
+        - name: type
+          value: unapproved
+          type: query
+          description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+          disabled: true
+        - name: last_knowledge_of_server
+          value: ""
+          type: query
+          description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "transactions": [],
+              "server_knowledge": 0
+            }
+          }
+  - name: 400 Response
+    description: An error occurred
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: since_date
+          value: ""
+          type: query
+          description: If specified, only transactions on or after this date will be included.  The date should be ISO formatted (e.g. 2016-12-30). Defaults to one year ago when not specified.
+          disabled: true
+        - name: until_date
+          value: ""
+          type: query
+          description: If specified, only transactions on or before this date will be included.  The date should be ISO formatted (e.g. 2016-12-30).
+          disabled: true
+        - name: type
+          value: uncategorized
+          type: query
+          description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+          disabled: true
+        - name: type
+          value: unapproved
+          type: query
+          description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+          disabled: true
+        - name: last_knowledge_of_server
+          value: ""
+          type: query
+          description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+          disabled: true
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+  - name: 404 Response
+    description: No transactions were found
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: since_date
+          value: ""
+          type: query
+          description: If specified, only transactions on or after this date will be included.  The date should be ISO formatted (e.g. 2016-12-30). Defaults to one year ago when not specified.
+          disabled: true
+        - name: until_date
+          value: ""
+          type: query
+          description: If specified, only transactions on or before this date will be included.  The date should be ISO formatted (e.g. 2016-12-30).
+          disabled: true
+        - name: type
+          value: uncategorized
+          type: query
+          description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+          disabled: true
+        - name: type
+          value: unapproved
+          type: query
+          description: If specified, only transactions of the specified type will be included. "uncategorized" and "unapproved" are currently supported.
+          disabled: true
+        - name: last_knowledge_of_server
+          value: ""
+          type: query
+          description: The starting server knowledge.  If provided, only entities that have changed since `last_knowledge_of_server` will be included.
+          disabled: true
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Returns plan transactions, excluding any pending transactions

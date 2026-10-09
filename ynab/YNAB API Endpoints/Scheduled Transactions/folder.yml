@@ -1,0 +1,7 @@
+info:
+  name: Scheduled Transactions
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

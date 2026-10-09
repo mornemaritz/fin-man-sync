@@ -1,0 +1,107 @@
+info:
+  name: Update a transaction
+  type: http
+  seq: 6
+  tags:
+    - Transactions
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/plans/:plan_id/transactions/:transaction_id"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    - name: transaction_id
+      value: ""
+      type: path
+      description: The id of the transaction
+  body:
+    type: json
+    data: |-
+      {
+        "transaction": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The transaction was successfully updated
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions/:transaction_id"
+      method: PUT
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: transaction_id
+          value: ""
+          type: path
+          description: The id of the transaction
+      body:
+        type: json
+        data: |-
+          {
+            "transaction": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "transaction": "",
+              "server_knowledge": 0
+            }
+          }
+  - name: 400 Response
+    description: The request could not be understood due to malformed syntax or validation error(s)
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/transactions/:transaction_id"
+      method: PUT
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: transaction_id
+          value: ""
+          type: path
+          description: The id of the transaction
+      body:
+        type: json
+        data: |-
+          {
+            "transaction": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Updates a single transaction

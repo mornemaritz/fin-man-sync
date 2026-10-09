@@ -1,0 +1,94 @@
+info:
+  name: Get a payee location
+  type: http
+  seq: 2
+  tags:
+    - Payee Locations
+
+http:
+  method: GET
+  url: "{{baseUrl}}/plans/:plan_id/payee_locations/:payee_location_id"
+  params:
+    - name: plan_id
+      value: ""
+      type: path
+      description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+    - name: payee_location_id
+      value: ""
+      type: path
+      description: id of payee location
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The payee location
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/payee_locations/:payee_location_id"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: payee_location_id
+          value: ""
+          type: path
+          description: id of payee location
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "payee_location": {
+                "id": "",
+                "payee_id": "",
+                "latitude": "",
+                "longitude": "",
+                "deleted": false
+              }
+            }
+          }
+  - name: 404 Response
+    description: The payee location was not found
+    request:
+      url: "{{baseUrl}}/plans/:plan_id/payee_locations/:payee_location_id"
+      method: GET
+      params:
+        - name: plan_id
+          value: ""
+          type: path
+          description: 'The id of the plan. "last-used" can be used to specify the last used plan and "default" can be used if default plan selection is enabled (see: https://api.ynab.com/#oauth-default-plan).'
+        - name: payee_location_id
+          value: ""
+          type: path
+          description: id of payee location
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "error": {
+              "id": "",
+              "name": "",
+              "detail": ""
+            }
+          }
+
+docs: Returns a single payee location
