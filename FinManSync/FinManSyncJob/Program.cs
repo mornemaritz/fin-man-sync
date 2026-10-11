@@ -2,25 +2,47 @@
 using FinManSync;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 var builder = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddUserSecrets<Program>() // Loads user-secrets for this assembly
     .AddEnvironmentVariables();
 
 var configuration = builder.Build();
 
-using var loggerFactory = LoggerFactory.Create(logging =>
+// Serilog is configured entirely from the "Serilog" section of appsettings.json
+// (sinks, levels, enrichers, output template, rolling policy).
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(configuration)
+    .CreateLogger();
+
+try
 {
-    // Add/replace providers here to log to other destinations (file, Application Insights, etc.)
-    // without changing any code in Operator.
-    logging.AddConsole();
-    logging.SetMinimumLevel(LogLevel.Information);
-});
+    // Serilog plugs in as a provider behind Microsoft.Extensions.Logging, so Operator
+    // continues to depend only on ILogger<T> and needs no changes.
+    using var loggerFactory = LoggerFactory.Create(logging =>
+    {
+        logging.ClearProviders();
+        logging.AddSerilog(Log.Logger, dispose: false);
+    });
 
-var logger = loggerFactory.CreateLogger<Operator>();
+    var logger = loggerFactory.CreateLogger<Operator>();
 
-var result = await new Operator(configuration, logger).OperateAsync(args);
-logger.LogInformation("{Result}", result);
+    var result = await new Operator(configuration, logger).OperateAsync(args);
+    // Write to stdout instead of logging so that the output can be captured by the calling process (e.g., a shell script) if needed.
+    Console.WriteLine(result);
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "FinManSyncJob terminated unexpectedly");
+    throw;
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
 
 partial class Program
 {

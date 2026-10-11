@@ -74,6 +74,21 @@ public class YnabPostTransactionRequest
   public List<YnabPostTransaction> Transactions { get; set; } = [];
 }
 
+public class YnabPostTransactionResponse
+{
+  [JsonPropertyName("data")]
+  public YnabPostTransactionResponseData Data { get; set; } = new();
+}
+
+public class YnabPostTransactionResponseData
+{
+  [JsonPropertyName("transaction_ids")]
+  public List<string> TransactionIds { get; set; } = [];
+
+  [JsonPropertyName("duplicate_import_ids")]
+  public List<string> DuplicateImportIds { get; set; } = [];
+}
+
 public class YnabPatchSubtransaction
 {
   [JsonPropertyName("amount")]

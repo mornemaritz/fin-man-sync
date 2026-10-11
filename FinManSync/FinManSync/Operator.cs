@@ -40,7 +40,7 @@ public class Operator
   {
     _logger = logger;
 
-    _logger.LogInformation("Initializing Operator with configuration...");
+    _logger.LogDebug("Initializing Operator with configuration...");
     _logger.LogDebug("INVESTEC_CLIENT_ID: {Status}", string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_ID"]) ? "Not Set" : "Set");
     _investecClientId = GetRequiredConfigValue(configuration, "INVESTEC_CLIENT_ID");
     _logger.LogDebug("INVESTEC_CLIENT_SECRET: {Status}", string.IsNullOrEmpty(configuration["INVESTEC_CLIENT_SECRET"]) ? "Not Set" : "Set");
@@ -81,8 +81,8 @@ public class Operator
     using var client = new HttpClient();
     using var response = client.Send(request);
 
-    _logger.LogInformation("Investec token response status code: {StatusCode}", response.StatusCode);
-    _logger.LogInformation("Investec token response message: {ReasonPhrase}", response.ReasonPhrase);
+    _logger.LogDebug("Investec token response status code: {StatusCode}", response.StatusCode);
+    _logger.LogDebug("Investec token response message: {ReasonPhrase}", response.ReasonPhrase);
     var body = response.Content.ReadAsStringAsync().Result;
     // Body contains the access token; keep at Debug so it isn't captured by default sinks/log levels.
     _logger.LogDebug("Investec token response body: {Body}", body);
@@ -113,16 +113,16 @@ public class Operator
 
     if (File.Exists(lastSyncDateFilePath) && File.ReadAllText(lastSyncDateFilePath) is string lastSyncDateFromFile && !string.IsNullOrWhiteSpace(lastSyncDateFromFile))
     {
-      _logger.LogInformation("Using last sync date from file: {LastSyncDateFilePath}", lastSyncDateFilePath);
+      _logger.LogDebug("Using last sync date from file: {LastSyncDateFilePath}", lastSyncDateFilePath);
       lastSyncDate = lastSyncDateFromFile.Trim();
-      _logger.LogInformation("Using last sync date from file: {LastSyncDate}", lastSyncDate);
+      _logger.LogDebug("Using last sync date from file: {LastSyncDate}", lastSyncDate);
     }
     else
     {
-      _logger.LogInformation("{LastSyncDateFilePath} not found or is empty. Using yesterday's date.", lastSyncDateFilePath);
+      _logger.LogDebug("{LastSyncDateFilePath} not found or is empty. Using yesterday's date.", lastSyncDateFilePath);
     }
 
-    _logger.LogInformation("Using toSyncDate: {ToSyncDate}", toSyncDate);
+    _logger.LogDebug("Using toSyncDate: {ToSyncDate}", toSyncDate);
 
     using var httpClient = new HttpClient();
 
@@ -140,8 +140,8 @@ public class Operator
     var investectTransactionResponse = await httpClient.SendAsync(investecRequest);
     ArgumentNullException.ThrowIfNull(investectTransactionResponse);
 
-    _logger.LogInformation("Investec transaction response status code: {StatusCode}", investectTransactionResponse.StatusCode);
-    _logger.LogInformation("Investec transaction response message: {ReasonPhrase}", investectTransactionResponse.ReasonPhrase);
+    _logger.LogDebug("Investec transaction response status code: {StatusCode}", investectTransactionResponse.StatusCode);
+    _logger.LogDebug("Investec transaction response message: {ReasonPhrase}", investectTransactionResponse.ReasonPhrase);
     var body = investectTransactionResponse.Content is null
       ? string.Empty
       : await investectTransactionResponse.Content.ReadAsStringAsync();
@@ -154,39 +154,70 @@ public class Operator
       return $"Investec transaction API returned an error. Status code: {(int)investectTransactionResponse.StatusCode}, Reason: {investectTransactionResponse.ReasonPhrase}, Body: {body}";
     }
 
-    var ynabPostTransactions = JsonSerializer.Deserialize<TransactionResponse>(body)?.Data.Transactions.Select(t => new YnabPostTransaction
+    var investecTransactions = JsonSerializer.Deserialize<TransactionResponse>(body)?.Data.Transactions;
+    var transactionSummary = new Dictionary<string, (int Imported, int Duplicate)>();
+
+    if (investecTransactions is { Count: > 0 })
     {
-      AccountId = _ynabAccountId,
-      Date = t.TransactionDate,
-      Amount = (int)(t.SignedAmount * 1000), // Convert to milliunits
-      PayeeName = t.Description,
-      ImportId = t.UUID // Using uuid as ImportId
-
-    }).ToList();
-
-    if (ynabPostTransactions?.Count != 0)
-    {
-      var ynabTransactionRoot = new YnabPostTransactionRequest
-      {
-        Transactions = ynabPostTransactions!
-      };
-
       httpClient.DefaultRequestHeaders.Clear();
       httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_ynabBearerToken}");
 
-      var postResponse = await httpClient.PostAsJsonAsync(ynabTransactionPostUrl, ynabTransactionRoot);
-      if (!postResponse.IsSuccessStatusCode)
+      foreach (var investecTransaction in investecTransactions)
       {
-        var postResponseBody = postResponse.Content is null
+        if (!transactionSummary.ContainsKey(investecTransaction.TransactionType))
+        {
+          transactionSummary[investecTransaction.TransactionType] = (0, 0);
+        }
+
+        var ynabPostTransaction = new YnabPostTransaction
+        {
+          AccountId = _ynabAccountId,
+          Date = investecTransaction.TransactionDate,
+          Amount = (int)(investecTransaction.SignedAmount * 1000), // Convert to milliunits
+          PayeeName = investecTransaction.Description,
+          ImportId = investecTransaction.UUID // Using uuid as ImportId
+        };
+
+        var ynabTransactionRoot = new YnabPostTransactionRequest
+        {
+          Transactions = [ynabPostTransaction]
+        };
+
+        using var postResponse = await httpClient.PostAsJsonAsync(ynabTransactionPostUrl, ynabTransactionRoot);
+        if (!postResponse.IsSuccessStatusCode)
+        {
+          var postResponseBody = postResponse.Content is null
+            ? string.Empty
+            : await postResponse.Content.ReadAsStringAsync();
+          _logger.LogError("YNAB transaction API returned an error. Status code: {StatusCode}, Reason: {ReasonPhrase}", (int)postResponse.StatusCode, postResponse.ReasonPhrase);
+          return $"YNAB transaction API returned an error. Status code: {(int)postResponse.StatusCode}, Reason: {postResponse.ReasonPhrase}, Body: {postResponseBody}";
+        }
+
+        var postSuccessBody = postResponse.Content is null
           ? string.Empty
           : await postResponse.Content.ReadAsStringAsync();
-        _logger.LogError("YNAB transaction API returned an error. Status code: {StatusCode}, Reason: {ReasonPhrase}", (int)postResponse.StatusCode, postResponse.ReasonPhrase);
-        return $"YNAB transaction API returned an error. Status code: {(int)postResponse.StatusCode}, Reason: {postResponse.ReasonPhrase}, Body: {postResponseBody}";
+        var postResult = JsonSerializer.Deserialize<YnabPostTransactionResponse>(postSuccessBody)
+          ?? throw new JsonException("YNAB transaction API returned an empty response.");
+        var currentSummary = transactionSummary[investecTransaction.TransactionType];
+        transactionSummary[investecTransaction.TransactionType] = (
+          currentSummary.Imported + postResult.Data.TransactionIds.Count,
+          currentSummary.Duplicate + postResult.Data.DuplicateImportIds.Count
+        );
       }
 
       File.WriteAllText(lastSyncDateFilePath, toSyncDate);
     }
 
-    return "Sync job completed successfully.";
+    var summary = new StringBuilder();
+    summary.AppendLine("|TransactionType|Imported|Duplicate|");
+    summary.AppendLine("|---|---|---|");
+
+    foreach (var (transactionType, counts) in transactionSummary)
+    {
+      var escapedTransactionType = transactionType.Replace("|", "\\|");
+      summary.AppendLine($"|{escapedTransactionType}|{counts.Imported}|{counts.Duplicate}|");
+    }
+
+    return summary.ToString().TrimEnd();
   }
 }
